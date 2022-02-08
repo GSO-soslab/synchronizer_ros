@@ -1,0 +1,9 @@
+<library path="lib/libsynchronizer_ros_nodelet">
+  <class name="synchronizer_ros/SynchronizerNodelet" 
+    type="synchronizer_ros::SynchronizerNodelet"
+    base_class_type="nodelet::Nodelet">
+  <description>
+  This is the VersaVIS synchronizer nodelet.
+  </description>
+  </class>
+</library>

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+<!-- utilities -->
+    <!-- LED, Servo, synchronizer -->
+    <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen" respawn="true" >
+        <param name="port" value="/dev/ttyACM0" type="string" />
+        <param name="baud" value="250000"       type="int" />
+    </node> 
+
+  <!-- Reset Arduino with ros message -->
+  <!-- <node pkg="rostopic" type="rostopic" name="resetter" output="screen"
+        args="pub /rov/synchronizer/reset std_msgs/Bool false -1-once" /> -->
+
+
+</launch>
