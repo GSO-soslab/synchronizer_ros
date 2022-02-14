@@ -18,17 +18,23 @@ public:
     {
 
     // pub to arduino
-    sciTask_pub = nh.advertise<std_msgs::String>("/rov/synchronizer/science/task", 1);
-    ledCmd_pub = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/led/cmd", 1);
-    ledMode_pub = nh.advertise<std_msgs::Bool>("/rov/synchronizer/led/mode", 1);
-    servoCmd_pub = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/servo/cmd", 1);
-    clock_pub = nh.advertise<std_msgs::UInt32>("/rov/synchronizer/reset_clock", 1);
+    pub_sciTask = nh.advertise<std_msgs::String>("/rov/synchronizer/science/task", 1);
+    pub_ledCmd = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/led/cmd", 1);
+    pub_ledMode = nh.advertise<std_msgs::Bool>("/rov/synchronizer/led/mode", 1);
+    pub_servoCmd = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/servo/cmd", 1);
+    pub_clock = nh.advertise<std_msgs::UInt32>("/rov/synchronizer/reset_clock", 1);
 
     // sub from arduino
-    msg_sub = nh.subscribe<std_msgs::String>("/rov/synchronizer/system", 1, 
-                                             &SynchronizerManager::messageCallback, this);
+    sub_sys = nh.subscribe<std_msgs::String>("/rov/synchronizer/system", 1, 
+                                             &SynchronizerManager::systemCallback, this);
+    sub_sci = nh.subscribe<std_msgs::String>("/rov/synchronizer/science/info", 1, 
+                                             &SynchronizerManager::scienceCallback, this);
+    sub_battery = nh.subscribe<std_msgs::String>("/rov/synchronizer/battery/info", 1, 
+                                             &SynchronizerManager::batteryCallback, this);
+    //// TODO: sub_cam_info
+    //// TODO: sub_battery_info
 
-    //server
+    // servers from onboard computer
     server_sci.setCallback(boost::bind(&SynchronizerManager::scienceCallback, this, _1, _2));
     server_led.setCallback(boost::bind(&SynchronizerManager::ledCallback, this, _1, _2));
     server_servo.setCallback(boost::bind(&SynchronizerManager::servoCallback, this, _1, _2));
@@ -39,8 +45,14 @@ public:
     last_led_mode.data = false;
   }
 
-  void messageCallback(const std_msgs::String::ConstPtr& msg);
+  //// system information callbacks
+  void systemCallback(const std_msgs::String::ConstPtr& msg);
 
+  void scienceCallback(const std_msgs::String::ConstPtr& msg);
+
+  void batteryCallback(const std_msgs::String::ConstPtr& msg);
+
+  //// srv callbacks
   void scienceCallback(synchronizer_ros::ScienceConfig &config, uint32_t level);
 
   void ledCallback(synchronizer_ros::LedConfig &config, uint32_t level);
@@ -57,34 +69,52 @@ private:
   ros::NodeHandle nh_servo;
   ros::NodeHandle nh_clock;
   // pub
-  ros::Publisher sciTask_pub;
-  ros::Publisher ledCmd_pub;
-  ros::Publisher ledMode_pub;
-  ros::Publisher servoCmd_pub;
-  ros::Publisher clock_pub;
+  ros::Publisher pub_sciTask;
+  ros::Publisher pub_ledCmd;
+  ros::Publisher pub_ledMode;
+  ros::Publisher pub_servoCmd;
+  ros::Publisher pub_clock;
   // sub
-  ros::Subscriber msg_sub;
+  ros::Subscriber sub_sys;
+  ros::Subscriber sub_sci;
+  ros::Subscriber sub_battery;
   // server
   dynamic_reconfigure::Server<synchronizer_ros::ScienceConfig> server_sci;
-  dynamic_reconfigure::Server<synchronizer_ros::LedConfig> server_led;
-  dynamic_reconfigure::Server<synchronizer_ros::ServoConfig> server_servo;
-  dynamic_reconfigure::Server<synchronizer_ros::ClockConfig> server_clock;
+  dynamic_reconfigure::Server<synchronizer_ros::LedConfig>     server_led;
+  dynamic_reconfigure::Server<synchronizer_ros::ServoConfig>   server_servo;
+  dynamic_reconfigure::Server<synchronizer_ros::ClockConfig>   server_clock;
   // global variables
   std_msgs::UInt16 last_led_cmd;
   std_msgs::Bool last_led_mode;
 
 };
 
+void SynchronizerManager::systemCallback(const std_msgs::String::ConstPtr& msg) {
+  //// TODO: check msg 
+  ROS_INFO("synchronizer_ros - system: %s", msg->data.c_str());
+}
+
+void SynchronizerManager::scienceCallback(const std_msgs::String::ConstPtr& msg) {
+
+  ROS_INFO("synchronizer_ros - science: %s", msg->data.c_str());
+}
+
+void SynchronizerManager::batteryCallback(const std_msgs::String::ConstPtr& msg) {
+
+  ROS_INFO("synchronizer_ros - battery: %s", msg->data.c_str());
+}
+
+
 void SynchronizerManager::ledCallback(synchronizer_ros::LedConfig &config, uint32_t level)
 {
   if(config.LED_Brightness != last_led_cmd.data){
     last_led_cmd.data = config.LED_Brightness;
-    ledCmd_pub.publish(last_led_cmd);
+    pub_ledCmd.publish(last_led_cmd);
   }
 
   if(config.LED_Mode != last_led_mode.data){
     last_led_mode.data = config.LED_Mode;
-    ledMode_pub.publish(last_led_mode);
+    pub_ledMode.publish(last_led_mode);
   }
 }
 
@@ -92,7 +122,7 @@ void SynchronizerManager::servoCallback(synchronizer_ros::ServoConfig &config, u
 {
   std_msgs::UInt16 msg;
   msg.data = config.Servo_Position;
-  servoCmd_pub.publish(msg);
+  pub_servoCmd.publish(msg);
 }
 
 void SynchronizerManager::clockCallback(synchronizer_ros::ClockConfig &config, uint32_t level)
@@ -109,20 +139,20 @@ void SynchronizerManager::clockCallback(synchronizer_ros::ClockConfig &config, u
     //// TODO: use UTC time?
     case 1:
       msg.data = ros::Time::now().toSec();
-      clock_pub.publish(msg);
+      pub_clock.publish(msg);
       break;
 
     //// gps clock
     //// TODO: gps clock
     case 2:
       msg.data = ros::Time::now().toSec();
-      clock_pub.publish(msg);
+      pub_clock.publish(msg);
       break;
       
     //// manual clock
     case 3:
       msg.data = 1642613314;
-      clock_pub.publish(msg);
+      pub_clock.publish(msg);
       break;
 
     default:
@@ -159,15 +189,8 @@ void SynchronizerManager::scienceCallback(synchronizer_ros::ScienceConfig &confi
       break;
   }
 
-  sciTask_pub.publish(task_id);
+  pub_sciTask.publish(task_id);
 }
-
-void SynchronizerManager::messageCallback(const std_msgs::String::ConstPtr& msg) {
-  //// TODO: check msg 
-  ROS_INFO("synchronizer_ros - \n  %s", msg->data.c_str());
-}
-
-
 
 int main(int argc, char **argv)
 {
