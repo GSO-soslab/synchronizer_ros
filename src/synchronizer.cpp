@@ -124,7 +124,7 @@ void Synchronizer::associateTimeStampsAndCleanUp() {
   }
 }
 
-void Synchronizer::imageCallback( const image_numbered_msgs::ImageNumbered &image_msg) {
+void Synchronizer::imageCallback( const synchronizer_ros::ImageNumbered &image_msg) {
   std::lock_guard<std::mutex> mutex_lock(mutex_);
 
   if (initialized_) {
@@ -187,7 +187,7 @@ void Synchronizer::imageTimeCallback( const synchronizer_ros::TimeNumbered &imag
   }
 }
 
-void Synchronizer::publishImg( const image_numbered_msgs::ImageNumbered &image_msg) {
+void Synchronizer::publishImg( const synchronizer_ros::ImageNumbered &image_msg) {
   if (image_msg.image.header.stamp.toSec() == 0) {
     ROS_WARN("[synchronizer-%s]: Zero timestamp for num. %ld.", device_name_.c_str(), image_msg.number);
     return;

@@ -18,7 +18,6 @@
   <depend>rosserial_client</depend>
   <depend>rosserial_arduino</depend>
   <depend>rosserial_python</depend>
-  <depend>image_numbered_msgs</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugin.xml" />

@@ -28,7 +28,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Time.h>
 
-#include <image_numbered_msgs/ImageNumbered.h>
+#include <synchronizer_ros/ImageNumbered.h>
 #include <synchronizer_ros/ImuMicro.h>
 #include <synchronizer_ros/TimeNumbered.h>
 
@@ -40,9 +40,9 @@ public:
                        const ros::NodeHandle &nh_private);
   ~Synchronizer();
 
-  void imageCallback(const image_numbered_msgs::ImageNumbered &image_msg);
+  void imageCallback(const synchronizer_ros::ImageNumbered &image_msg);
   void imageTimeCallback(const synchronizer_ros::TimeNumbered &image_time_msg);
-  void publishImg(const image_numbered_msgs::ImageNumbered &image_msg);
+  void publishImg(const synchronizer_ros::ImageNumbered &image_msg);
 
   bool readParameters();
 
@@ -73,7 +73,7 @@ private:
   // Association members.
   synchronizer_ros::TimeNumbered init_time_;
   std::vector<synchronizer_ros::TimeNumbered> image_time_stamp_candidates_;
-  std::vector<image_numbered_msgs::ImageNumbered> image_candidates_;
+  std::vector<synchronizer_ros::ImageNumbered> image_candidates_;
   ros::Time last_stamp_;
   ros::Time init_timestamp_;
 

@@ -19,8 +19,8 @@ public:
 
     // pub to arduino
     pub_sciTask = nh.advertise<std_msgs::String>("/rov/synchronizer/science/task", 1);
-    pub_ledCmd = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/led/cmd", 1);
-    pub_ledMode = nh.advertise<std_msgs::Bool>("/rov/synchronizer/led/mode", 1);
+    pub_led = nh.advertise<std_msgs::String>("/rov/synchronizer/led/cmd", 1);
+
     pub_servoCmd = nh.advertise<std_msgs::UInt16>("/rov/synchronizer/servo/cmd", 1);
     pub_clock = nh.advertise<std_msgs::UInt32>("/rov/synchronizer/reset_clock", 1);
 
@@ -41,8 +41,11 @@ public:
     server_clock.setCallback(boost::bind(&SynchronizerManager::clockCallback, this, _1, _2));
 
     // load params 
-    last_led_cmd.data = 50;
-    last_led_mode.data = false;
+    last_led_mode = 0;
+    last_led_pwm = 1100;
+
+    last_sci_task = 0;
+    last_sci_manual = "aaa";
   }
 
   //// system information callbacks
@@ -70,8 +73,7 @@ private:
   ros::NodeHandle nh_clock;
   // pub
   ros::Publisher pub_sciTask;
-  ros::Publisher pub_ledCmd;
-  ros::Publisher pub_ledMode;
+  ros::Publisher pub_led;
   ros::Publisher pub_servoCmd;
   ros::Publisher pub_clock;
   // sub
@@ -83,10 +85,13 @@ private:
   dynamic_reconfigure::Server<synchronizer_ros::LedConfig>     server_led;
   dynamic_reconfigure::Server<synchronizer_ros::ServoConfig>   server_servo;
   dynamic_reconfigure::Server<synchronizer_ros::ClockConfig>   server_clock;
-  // global variables
-  std_msgs::UInt16 last_led_cmd;
-  std_msgs::Bool last_led_mode;
 
+  //// global variables for LED
+  int last_led_mode;
+  int last_led_pwm;
+
+  int last_sci_task;
+  std::string last_sci_manual;
 };
 
 void SynchronizerManager::systemCallback(const std_msgs::String::ConstPtr& msg) {
@@ -107,15 +112,36 @@ void SynchronizerManager::batteryCallback(const std_msgs::String::ConstPtr& msg)
 
 void SynchronizerManager::ledCallback(synchronizer_ros::LedConfig &config, uint32_t level)
 {
-  if(config.LED_Brightness != last_led_cmd.data){
-    last_led_cmd.data = config.LED_Brightness;
-    pub_ledCmd.publish(last_led_cmd);
+  /******************** LED mode ********************/
+
+  //// example: send led mode as Servo_mode: #0,0*
+  //// example: send led mode as Flash_mode: #0,1*
+  if(config.LED_Mode != last_led_mode){
+    last_led_mode = config.LED_Mode;
+
+    std::stringstream ss;
+    std_msgs::String msg;
+
+    ss << "#0," << last_led_mode <<"*";
+    msg.data = ss.str();
+    pub_led.publish(msg);
   }
 
-  if(config.LED_Mode != last_led_mode.data){
-    last_led_mode.data = config.LED_Mode;
-    pub_ledMode.publish(last_led_mode);
+  /******************** LED brightness control ********************/
+
+  //// example: send pwm min brightness(off): #1,1100*
+  //// example: send pwm max brightness:      #1,1900*
+  if(config.LED_Brightness != last_led_pwm){
+    last_led_pwm = config.LED_Brightness;
+
+    std::stringstream ss;
+    std_msgs::String msg;
+
+    ss << "#1," << last_led_pwm <<"*";
+    msg.data = ss.str();
+    pub_led.publish(msg);
   }
+
 }
 
 void SynchronizerManager::servoCallback(synchronizer_ros::ServoConfig &config, uint32_t level)
@@ -162,34 +188,51 @@ void SynchronizerManager::clockCallback(synchronizer_ros::ClockConfig &config, u
 
 void SynchronizerManager::scienceCallback(synchronizer_ros::ScienceConfig &config, uint32_t level)
 {
-  std_msgs::String task_id;
 
-  switch (config.Task)
-  {
-    // stop record science sensor data
-    case 0:
-      task_id.data = "#0*";
-      break;
-    // start record science sensor data
-    case 1:
-      task_id.data = "#1*";
-      break;
-    // print saved file path
-    case 2:
-      task_id.data = "#2*";
-      break;
-    // print latest sensor data
-    case 3:
-      task_id.data = "#3*";
-      break;
-    // something wrong
-    default:
-      task_id.data = "#-1*";
-      ROS_WARN("Unknow task id !!");
-      break;
+  if(last_sci_task != config.Task) {
+    std_msgs::String task_id;
+
+    switch (config.Task)
+    {
+      // stop record science sensor data
+      case 0:
+        task_id.data = "#0*";
+        last_sci_task = 0;
+        break;
+      // start record science sensor data
+      case 1:
+        task_id.data = "#1*";
+        last_sci_task = 1;
+        break;
+      // print saved file path
+      case 2:
+        task_id.data = "#2*";
+        last_sci_task = 2;
+        break;
+      // print latest sensor data
+      case 3:
+        task_id.data = "#3*";
+        last_sci_task = 3;
+        break;
+      // something wrong
+      default:
+        task_id.data = "#-1*";
+        last_sci_task = -1;
+        ROS_WARN("Unknow task id !!");
+        break;
+    }
+
+    pub_sciTask.publish(task_id);
   }
 
-  pub_sciTask.publish(task_id);
+
+  if(last_sci_manual != config.Manual) {
+    printf("manual commad:%s\n", config.Manual.c_str());
+
+    last_sci_manual = config.Manual;
+  }
+
+
 }
 
 int main(int argc, char **argv)

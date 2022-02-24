@@ -17,13 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
   rosserial_arduino
   rosserial_client
   rosserial_python
-  image_numbered_msgs
 
   dynamic_reconfigure
 )
 
 add_message_files(
   FILES
+  ImageNumbered.msg
   ImuMicro.msg
   TimeNumbered.msg
 )
@@ -39,6 +39,7 @@ generate_dynamic_reconfigure_options(
   cfg/Led.cfg
   cfg/Servo.cfg
   cfg/Clock.cfg
+  
 )
 
 catkin_package(
