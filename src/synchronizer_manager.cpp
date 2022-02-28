@@ -9,6 +9,9 @@
 #include <std_msgs/UInt32.h> 
 #include <std_msgs/Bool.h> 
 
+#include <chrono>
+#include <thread>
+
 class SynchronizerManager {
 
 public:
@@ -161,23 +164,30 @@ void SynchronizerManager::clockCallback(synchronizer_ros::ClockConfig &config, u
     case 0:
       break;
 
-    //// computer clock
-    //// TODO: use UTC time?
-    case 1:
-      msg.data = ros::Time::now().toSec();
-      pub_clock.publish(msg);
-      break;
+    //// computer clock (UTC)
+    case 1:{
 
-    //// gps clock
-    //// TODO: gps clock
+      ros::Time time_before = ros::Time::now();
+      int delay = (1000000000 - time_before.nsec) ;
+      std::this_thread::sleep_for(std::chrono::nanoseconds(delay));
+      // printf("delay around %d ms to send a full second\n", delay/1000000);
+
+      msg.data = time_before.sec + 1;
+      pub_clock.publish(msg);
+
+      printf("UTC clock %d sent to Arduino\n", msg.data);
+      break;
+    }
+
+    //// TODO: gps clock (UTC)
     case 2:
       msg.data = ros::Time::now().toSec();
       pub_clock.publish(msg);
       break;
       
-    //// manual clock
+    //// manual UTC clock
     case 3:
-      msg.data = 1642613314;
+      msg.data = 1646073518;
       pub_clock.publish(msg);
       break;
 
@@ -227,8 +237,6 @@ void SynchronizerManager::scienceCallback(synchronizer_ros::ScienceConfig &confi
 
 
   if(last_sci_manual != config.Manual) {
-    printf("manual commad:%s\n", config.Manual.c_str());
-
     last_sci_manual = config.Manual;
   }
 
