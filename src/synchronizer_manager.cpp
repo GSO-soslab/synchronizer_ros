@@ -34,6 +34,12 @@ public:
                                              &SynchronizerManager::scienceCallback, this);
     sub_battery = nh.subscribe<std_msgs::String>("/rov/synchronizer/battery/info", 1, 
                                              &SynchronizerManager::batteryCallback, this);
+    sub_cam = nh.subscribe<std_msgs::String>("/rov/synchronizer/cam/info", 1, 
+                                             &SynchronizerManager::cameraCallback, this);
+    sub_dvl = nh.subscribe<std_msgs::String>("/rov/synchronizer/dvl/info", 1, 
+                                             &SynchronizerManager::dvlCallback, this);
+    sub_pps = nh.subscribe<std_msgs::String>("/rov/synchronizer/pps/info", 1, 
+                                             &SynchronizerManager::ppsCallback, this);
     //// TODO: sub_cam_info
     //// TODO: sub_battery_info
 
@@ -57,6 +63,12 @@ public:
   void scienceCallback(const std_msgs::String::ConstPtr& msg);
 
   void batteryCallback(const std_msgs::String::ConstPtr& msg);
+
+  void cameraCallback(const std_msgs::String::ConstPtr& msg);
+
+  void dvlCallback(const std_msgs::String::ConstPtr& msg);
+
+  void ppsCallback(const std_msgs::String::ConstPtr& msg);
 
   //// srv callbacks
   void scienceCallback(synchronizer_ros::ScienceConfig &config, uint32_t level);
@@ -83,6 +95,9 @@ private:
   ros::Subscriber sub_sys;
   ros::Subscriber sub_sci;
   ros::Subscriber sub_battery;
+  ros::Subscriber sub_cam;
+  ros::Subscriber sub_dvl;
+  ros::Subscriber sub_pps;
   // server
   dynamic_reconfigure::Server<synchronizer_ros::ScienceConfig> server_sci;
   dynamic_reconfigure::Server<synchronizer_ros::LedConfig>     server_led;
@@ -112,6 +127,20 @@ void SynchronizerManager::batteryCallback(const std_msgs::String::ConstPtr& msg)
   ROS_INFO("synchronizer_ros - battery: %s", msg->data.c_str());
 }
 
+void SynchronizerManager::cameraCallback(const std_msgs::String::ConstPtr& msg) {
+
+  ROS_INFO("synchronizer_ros - cam: %s", msg->data.c_str());
+}
+
+void SynchronizerManager::dvlCallback(const std_msgs::String::ConstPtr& msg) {
+
+  ROS_INFO("synchronizer_ros - dvl: %s", msg->data.c_str());
+}
+
+void SynchronizerManager::ppsCallback(const std_msgs::String::ConstPtr& msg) {
+
+  ROS_INFO("synchronizer_ros - pps: %s", msg->data.c_str());
+}
 
 void SynchronizerManager::ledCallback(synchronizer_ros::LedConfig &config, uint32_t level)
 {
