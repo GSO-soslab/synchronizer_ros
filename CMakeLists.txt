@@ -5,9 +5,12 @@ project(synchronizer_ros)
 # Set compile flags (-Ofast actually makes a big difference over -O3 here (maybe 20% faster)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
+find_package(Eigen3 REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
+  geometry_msgs
   message_generation
   roscpp
   rospy
@@ -19,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
   rosserial_python
 
   dynamic_reconfigure
+  
+  ds_sensor_msgs
 )
 
 add_message_files(
@@ -50,7 +55,8 @@ catkin_package(
 
 include_directories(
 	include
-    ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 #############
@@ -77,6 +83,9 @@ target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 add_executable(synchronizer_manager_node src/synchronizer_manager.cpp)
 target_link_libraries(synchronizer_manager_node ${catkin_LIBRARIES})
 add_dependencies(synchronizer_manager_node ${PROJECT_NAME}_gencfg)
+
+add_executable(synchronizer_dvl_node src/synchronizer_dvl.cpp)
+target_link_libraries(synchronizer_dvl_node ${catkin_LIBRARIES})
 
 # add_executable(versavis_imu_receiver
 #    src/versavis_imu_receiver.cpp

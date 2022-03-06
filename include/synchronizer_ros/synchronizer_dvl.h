@@ -5,86 +5,109 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <map>
+#include <vector>
 
-#include <image_transport/image_transport.h>
-#include <nodelet/nodelet.h>
-#include <pluginlib/class_list_macros.hpp>
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <ros/subscriber.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/image_encodings.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Time.h>
 
-#include <synchronizer_ros/ImageNumbered.h>
-#include <synchronizer_ros/ImuMicro.h>
 #include <synchronizer_ros/TimeNumbered.h>
+#include "ds_sensor_msgs/NortekDF3.h"
+#include "ds_sensor_msgs/NortekDF21.h"
+#include "ds_sensor_msgs/Dvl.h"
+#include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/PointStamped.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+
+#include <Eigen/Dense>
 
 namespace synchronizer_ros {
-  
-class Synchronizer {
-public:
-  Synchronizer(const ros::NodeHandle &nh,
-                       const ros::NodeHandle &nh_private);
-  ~Synchronizer();
 
-  void imageCallback(const synchronizer_ros::ImageNumbered &image_msg);
-  void imageTimeCallback(const synchronizer_ros::TimeNumbered &image_time_msg);
-  void publishImg(const synchronizer_ros::ImageNumbered &image_msg);
+#define PI 3.1415926
+
+class SynchronizerDvl {
+public:
+  SynchronizerDvl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
+  ~SynchronizerDvl();
+
+  void timeCallback(const synchronizer_ros::TimeNumbered &msg_time);
+
+  void bottomtrackCallback(const ds_sensor_msgs::NortekDF21 &msg_bt);
+
+  void currentprofileCallback(const ds_sensor_msgs::NortekDF3 &msg_cp);
 
   bool readParameters();
 
-  // Find nearest time stamp in a list of candidates (only newer are possible
-  // due to driver logic).
   void associateTimeStampsAndCleanUp();
 
+  void publish(const synchronizer_ros::TimeNumbered &msg_time, 
+               ds_sensor_msgs::NortekDF21 &msg_bt);
+
+  void publish(const synchronizer_ros::TimeNumbered &msg_time, 
+               ds_sensor_msgs::NortekDF3 &msg_cp);
+
+  void derivedCP(geometry_msgs::PointStamped* depth_data, 
+                 ds_sensor_msgs::NortekDF3* big_msg);
+
+  void derivedBT(ds_sensor_msgs::Dvl* dvl_data,
+                 geometry_msgs::TwistStamped* velocity_data,
+                 geometry_msgs::PointStamped* depth_data, 
+                 sensor_msgs::PointCloud2& pointcloud_data,
+                 ds_sensor_msgs::NortekDF21* big_msg);
 private:
   // ROS members.
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  ros::Subscriber image_sub_;
-  ros::Subscriber image_time_sub_;
+  ros::Subscriber sub_time_;
+  ros::Subscriber sub_bt_;
+  ros::Subscriber sub_cp_;
 
-  ros::Publisher initialized_pub_;
-  image_transport::ImageTransport image_transport_;
-  image_transport::Publisher image_fast_pub_;
+  ros::Publisher pub_init_;
+  ros::Publisher pub_bt_;
+  ros::Publisher pub_cp_;
 
-  // Topic names.
-  std::string synchronizer_topic_;
-  std::string camera_topic_;
-  std::string device_name_;
-  std::string image_pub_topic_;
-  std::string image_time_sub_topic_;
-  std::string initialized_pub_topic_;
-
-  // Association members.
-  synchronizer_ros::TimeNumbered init_time_;
-  std::vector<synchronizer_ros::TimeNumbered> image_time_stamp_candidates_;
-  std::vector<synchronizer_ros::ImageNumbered> image_candidates_;
-  ros::Time last_stamp_;
-  ros::Time init_timestamp_;
-
-  // Constants.
-  const uint8_t max_buffer;
-  const uint8_t match_threshold;
-  const double msgs_delay_threshold;
-
-  // Image numbers and initialization.
-  uint8_t good_matches_;
-  uint64_t last_image_number_;
-  int64_t offset_;
+  // publish derived msg
+  ros::Publisher pub_dvl_;
+  ros::Publisher pub_velocity_;
+  ros::Publisher pub_depth_;
+  ros::Publisher pub_pointcloud_;
+  
+  // Initializing
+  bool received_bt_;
+  bool received_cp_;
+  uint32_t latest_seq_bt_;
+  uint32_t latest_seq_cp_;
   bool initialized_;
-  bool first_time_;
 
-  // Configuration.
-  ros::Duration imu_offset_;
+  ros::Time init_timestamp_;
+  synchronizer_ros::TimeNumbered init_time_;
 
+  int64_t offset_;
+  int good_matches_;
+
+  // Initialized
+  std::vector<synchronizer_ros::TimeNumbered> candidates_time_;
+  std::map<uint64_t, ds_sensor_msgs::NortekDF21> candidates_bt_;
+  std::map<uint64_t, ds_sensor_msgs::NortekDF3> candidates_cp_;
+
+  // Parameters
+  std::string device_name_;
+  double sound_speed_;
+  double trigger_delay_;
+  double delay_threshold_;
+  int match_threshold_;
+  int max_buffer_;
+  int beam_angle_;
+  bool pub_derived_msg_;
+  
   std::mutex mutex_;
 };
+
 } // namespace synchronizer_ros
 
 #endif // SYNCHRONIZER_DVL_H_

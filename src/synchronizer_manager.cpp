@@ -40,8 +40,6 @@ public:
                                              &SynchronizerManager::dvlCallback, this);
     sub_pps = nh.subscribe<std_msgs::String>("/rov/synchronizer/pps/info", 1, 
                                              &SynchronizerManager::ppsCallback, this);
-    //// TODO: sub_cam_info
-    //// TODO: sub_battery_info
 
     // servers from onboard computer
     server_sci.setCallback(boost::bind(&SynchronizerManager::scienceCallback, this, _1, _2));

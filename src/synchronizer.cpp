@@ -15,7 +15,6 @@ Synchronizer::Synchronizer(const ros::NodeHandle &nh,
       match_threshold(4), msgs_delay_threshold(0.1),
       good_matches_(0), initialized_(false), device_name_("NO")
 {
-  ROS_INFO("[synchronizer-%s]: !!!!! Remap image time started !!!!!", device_name_.c_str());
   readParameters();
 
 /******************** Subscriber ********************/
@@ -57,7 +56,8 @@ void Synchronizer::associateTimeStampsAndCleanUp() {
   auto image_time_idx = image_time_stamp_candidates_.begin();
   bool image_found = false;
 
-  //// maybe change to better logic ?
+  //// TODO: maybe change to better logic ?
+  //// traverse each img to match from time vector based on initialized num_offset
   while (image_idx != image_candidates_.end()) {
     while (image_time_idx != image_time_stamp_candidates_.end()) {
       if (image_idx->number == image_time_idx->number + offset_) {
@@ -97,6 +97,7 @@ void Synchronizer::associateTimeStampsAndCleanUp() {
   }
 
   // Delete old messages to prevent non-consecutive publishing.
+  //// left msg compare with the published msg
   image_idx = image_candidates_.begin();
   image_time_idx = image_time_stamp_candidates_.begin();
   while (image_idx != image_candidates_.end()) {
@@ -157,6 +158,7 @@ void Synchronizer::imageCallback( const synchronizer_ros::ImageNumbered &image_m
     else {
       good_matches_ = 0;
     }
+    
     offset_ = offset;
   }
 }
@@ -165,7 +167,6 @@ void Synchronizer::imageTimeCallback( const synchronizer_ros::TimeNumbered &imag
   
   std::lock_guard<std::mutex> mutex_lock(mutex_);
   ROS_INFO_ONCE("[synchronizer-%s]: Received first image time stamp message.",device_name_.c_str());
-
 
   if (initialized_) {
     image_time_stamp_candidates_.emplace_back(image_triggered_time_msg);
@@ -211,6 +212,10 @@ void Synchronizer::publishImg( const synchronizer_ros::ImageNumbered &image_msg)
 }
 
 bool Synchronizer::readParameters() {
+  if (!nh_private_.getParam("device_name", device_name_)) {
+    ROS_ERROR("[synchronizer-%s]: Define a device name.", device_name_.c_str());
+  } 
+
   ROS_INFO("[synchronizer-%s]: SETTINGS: ", device_name_.c_str() );
 
 /******************** camera driver side ********************/ 
@@ -241,9 +246,7 @@ bool Synchronizer::readParameters() {
   }
  
 
-  if (!nh_private_.getParam("device_name", device_name_)) {
-    ROS_ERROR("[synchronizer-%s]: Define a device name.", device_name_.c_str());
-  } 
+
 
 /******************** configuration side ********************/ 
 
