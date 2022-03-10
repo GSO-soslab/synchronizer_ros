@@ -61,13 +61,13 @@ void Synchronizer::associateTimeStampsAndCleanUp() {
   while (image_idx != image_candidates_.end()) {
     while (image_time_idx != image_time_stamp_candidates_.end()) {
       if (image_idx->number == image_time_idx->number + offset_) {
+        //// assgin exposure time
+        image_idx->exposure = image_time_idx->exposure_pri;
+
         //// assign trigger timestamp
-        image_idx->image.header.stamp = image_time_idx->time + imu_offset_;
-        //// TODO: assgin exposure time
-        if(device_name_=="right_cam")
-          image_idx->exposure = image_time_idx->exposure_pri;
-        else if(device_name_=="left_cam")
-          image_idx->exposure = image_time_idx->exposure_sec;
+        ros::Duration expsoure_compensate = ros::Duration(image_time_idx->exposure_pri /2 / 1e6);
+        image_idx->image.header.stamp = image_time_idx->time + trigger_delay_ + expsoure_compensate;
+
         // ROS_INFO("[synchronizer-%s]: exposure %f.", device_name_.c_str(), image_idx->exposure);
         
         publishImg(*image_idx);
@@ -255,6 +255,13 @@ bool Synchronizer::readParameters() {
   imu_offset_ = ros::Duration(imu_offset_us / 1e6);
   ROS_INFO("[synchronizer-%s]:   IMU has a calibrated dalay of %0.0f us.",
             device_name_.c_str(), imu_offset_.toSec() * 1e6);
+
+  int trigger_delay_us;
+  nh_private_.param("trigger_delay_us", trigger_delay_us, 24);
+  trigger_delay_ = ros::Duration(trigger_delay_us / 1e6);
+  ROS_INFO("[synchronizer-%s]:   Camera has a trigger dalay of %d us.",
+            device_name_.c_str(), trigger_delay_us);
+
   return true;
 }
 

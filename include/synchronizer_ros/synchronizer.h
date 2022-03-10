@@ -91,7 +91,7 @@ private:
 
   // Configuration.
   ros::Duration imu_offset_;
-
+  ros::Duration trigger_delay_;
   std::mutex mutex_;
 };
 } // namespace synchronizer_ros
