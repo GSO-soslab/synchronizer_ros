@@ -37,6 +37,10 @@ Synchronizer::Synchronizer(const ros::NodeHandle &nh,
 
   image_fast_pub_ = image_transport_.advertise(image_pub_topic_, 10u);
   ROS_INFO("[synchronizer-%s]:   Publishing image to %s.", device_name_.c_str(), image_pub_topic_.c_str());
+
+  image_calib_pub_ = nh_.advertise<synchronizer_ros::ImageCalib>(img_calib_pub_topic_, 10u);
+  ROS_INFO("[synchronizer-%s]:   Publishing calibration to %s.", device_name_.c_str(), img_calib_pub_topic_.c_str());
+
 }
 
 Synchronizer::~Synchronizer() {
@@ -61,15 +65,23 @@ void Synchronizer::associateTimeStampsAndCleanUp() {
   while (image_idx != image_candidates_.end()) {
     while (image_time_idx != image_time_stamp_candidates_.end()) {
       if (image_idx->number == image_time_idx->number + offset_) {
-        //// assgin exposure time
-        image_idx->exposure = image_time_idx->exposure_pri;
 
-        //// assign trigger timestamp
+        // printf("name:%s, trigger:%.9f, io:%.9f\n",
+        //       device_name_.c_str(), image_time_idx->time.toSec(), image_idx->image.header.stamp.toSec());
+
+        synchronizer_ros::ImageCalib img_calib;
+        //// exposure compensate
         ros::Duration expsoure_compensate = ros::Duration(image_time_idx->exposure_pri /2 / 1e6);
-        image_idx->image.header.stamp = image_time_idx->time + trigger_delay_ + expsoure_compensate;
+        img_calib.header.stamp = image_time_idx->time + trigger_delay_ + expsoure_compensate;
+        //// assgin IO-time
+        img_calib.io_time = image_idx->image.header.stamp;
+        //// only assign primary camera exposure, since stereo-cam are triggered by primary-seconary method
+        img_calib.exposure = image_time_idx->exposure_pri;
+        //// publishing
+        image_calib_pub_.publish(img_calib);
 
-        // ROS_INFO("[synchronizer-%s]: exposure %f.", device_name_.c_str(), image_idx->exposure);
-        
+        //// assign actual timestamp
+        image_idx->image.header.stamp = img_calib.header.stamp;
         publishImg(*image_idx);
 
         last_img_num = image_idx->number;
@@ -206,7 +218,6 @@ void Synchronizer::publishImg( const synchronizer_ros::ImageNumbered &image_msg)
   last_image_number_ = image_msg.number;
   last_stamp_ = image_msg.image.header.stamp;
 
-
   image_fast_pub_.publish(image_msg.image);
 
 }
@@ -227,9 +238,12 @@ bool Synchronizer::readParameters() {
     if (camera_topic_.back() != '/') 
       camera_topic_ = camera_topic_ + "/";
 
+    img_calib_pub_topic_ = camera_topic_ + "/calib";
+    
     camera_topic_ = camera_topic_ + "image_numbered";
 
     image_pub_topic_ = camera_topic_ + "/image_raw_sync";
+
   }
 
 /******************** synchronizer_arduino side ********************/ 

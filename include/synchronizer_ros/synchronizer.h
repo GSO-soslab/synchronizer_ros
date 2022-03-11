@@ -29,6 +29,7 @@
 #include <std_msgs/Time.h>
 
 #include <synchronizer_ros/ImageNumbered.h>
+#include <synchronizer_ros/ImageCalib.h>
 #include <synchronizer_ros/ImuMicro.h>
 #include <synchronizer_ros/TimeNumbered.h>
 
@@ -59,6 +60,7 @@ private:
   ros::Subscriber image_time_sub_;
 
   ros::Publisher initialized_pub_;
+  ros::Publisher image_calib_pub_;
   image_transport::ImageTransport image_transport_;
   image_transport::Publisher image_fast_pub_;
 
@@ -69,6 +71,7 @@ private:
   std::string image_pub_topic_;
   std::string image_time_sub_topic_;
   std::string initialized_pub_topic_;
+  std::string img_calib_pub_topic_;
 
   // Association members.
   synchronizer_ros::TimeNumbered init_time_;
