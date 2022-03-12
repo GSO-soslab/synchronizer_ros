@@ -202,7 +202,7 @@ void SynchronizerManager::clockCallback(synchronizer_ros::ClockConfig &config, u
       msg.data = time_before.sec + 1;
       pub_clock.publish(msg);
 
-      printf("UTC clock %d sent to Arduino\n", msg.data);
+      // printf("UTC clock %d sent to Arduino\n", msg.data);
       break;
     }
 
@@ -227,43 +227,51 @@ void SynchronizerManager::scienceCallback(synchronizer_ros::ScienceConfig &confi
 {
 
   if(last_sci_task != config.Task) {
-    std_msgs::String task_id;
+    std_msgs::String task;
 
     switch (config.Task)
     {
       // stop record science sensor data
       case 0:
-        task_id.data = "#0*";
+        task.data = "#0*";
         last_sci_task = 0;
         break;
       // start record science sensor data
       case 1:
-        task_id.data = "#1*";
+        task.data = "#1*";
         last_sci_task = 1;
         break;
       // print saved file path
       case 2:
-        task_id.data = "#2*";
+        task.data = "#2*";
         last_sci_task = 2;
         break;
       // print latest sensor data
       case 3:
-        task_id.data = "#3*";
+        task.data = "#3*";
         last_sci_task = 3;
         break;
       // something wrong
       default:
-        task_id.data = "#-1*";
+        task.data = "#-1*";
         last_sci_task = -1;
         ROS_WARN("Unknow task id !!");
         break;
     }
 
-    pub_sciTask.publish(task_id);
+    pub_sciTask.publish(task);
   }
 
 
   if(last_sci_manual != config.Manual) {
+
+    std_msgs::String task;
+    task.data = config.Manual;
+
+    pub_sciTask.publish(task);
+
+    // printf("send from onboard:%s\n", config.Manual.c_str());
+
     last_sci_manual = config.Manual;
   }
 
