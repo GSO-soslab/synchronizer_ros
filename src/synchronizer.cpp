@@ -202,7 +202,8 @@ void Synchronizer::publishImg( const synchronizer_ros::ImageNumbered &image_msg)
   }
 
   if (image_msg.image.header.stamp.toSec() <= last_stamp_.toSec()) {
-    ROS_WARN("[synchronizer-%s]: Non-increasing timestamp for num. %ld.", device_name_.c_str(), image_msg.number);
+    ROS_WARN("[synchronizer-%s]: Non-increasing timestamp for num. %ld, img t:%f, last t:%f", 
+      device_name_.c_str(), image_msg.number, image_msg.image.header.stamp.toSec(), last_stamp_.toSec());
     return;
   }
   //// remind some images are deleted, except first time
