@@ -106,6 +106,9 @@ private:
   bool pub_derived_msg_;
   
   std::mutex mutex_;
+
+  // double last_sys_time_;
+
 };
 
 } // namespace synchronizer_ros

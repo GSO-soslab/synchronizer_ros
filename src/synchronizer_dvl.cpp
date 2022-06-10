@@ -328,6 +328,9 @@ void SynchronizerDvl::bottomtrackCallback(const ds_sensor_msgs::NortekDF21 &msg_
   if(initialized_) {
     candidates_bt_.insert({latest_seq_cp_+latest_seq_bt_, msg_bt});
 
+    //// TEST:
+    // printf("BT:seq:%d, t: %0.5f\n", latest_seq_bt_, msg_bt.header.stamp.toSec());
+
     associateTimeStampsAndCleanUp();
 
     if (candidates_bt_.size() > max_buffer_) {
